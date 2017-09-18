@@ -29,12 +29,14 @@ function changingAffiliateUrl( $hook ) {
 //    echo '</p>';
     // Edit store
     if ( $hook == 'term.php' && $screen->post_type === 'coupon' ) {
-        wp_enqueue_script( 'bogo_custom_script', plugin_dir_url( __FILE__ ) . 'script.js' );
+        wp_enqueue_script( 'bogo_custom_script', plugin_dir_url( __FILE__ ) . 'js/script.js' );
     }
     if ( $hook == 'post.php' && $screen->post_type === 'coupon' ) {
-        wp_enqueue_script( 'bogo_custom_script', plugin_dir_url( __FILE__ ) . 'script-2.js' );
+        wp_enqueue_script( 'bogo_custom_script_2', plugin_dir_url( __FILE__ ) . 'js/script-2.js' );
     }
-
+    if ( $hook == 'edit-tags.php' && $screen->post_type === 'coupon' ) {
+        wp_enqueue_script( 'bogo_custom_script_3', plugin_dir_url( __FILE__ ) . 'js/script-3.js' );
+    }
 }
 
 /* Action send mail */
@@ -178,3 +180,29 @@ function sendGmail($mailDriver, $first, $last, $storeName, $currentUser, $date, 
         $result = $service->users_messages->send($user, $msg);
     }
 }
+
+/* Check exist store by url homepage */
+add_action( 'wp_ajax_check_store_exist', 'check_store_exist' );
+function check_store_exist(){
+    global $wpdb;
+    $url = $_POST['params']['url'];
+    /* remove http and https and www. from url */
+    $url = preg_replace("(^https?://(www.)?)", "", $url );
+    $url = preg_replace("(^(www.)?)", "", $url );
+    $result = $wpdb->get_results("select * from wp_termmeta where meta_key='_wpc_store_url' and meta_value like '%$url%'");
+    $match = [];
+    if($result){
+        foreach ($result as $item) {
+            $id = $item->term_id;
+            $storeUrl = $item->meta_value;
+            $path = site_url() . "/wp-admin/term.php?taxonomy=coupon_store&tag_ID=$id&post_type=coupon";
+            $e = "<a style='color: blue' target='_blank' href='$path'>$storeUrl</a>";
+            array_push($match, $e);
+        }
+    }
+
+    echo json_encode($match);
+    die;
+}
+
+include ('frontend.php');
